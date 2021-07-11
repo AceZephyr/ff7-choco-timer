@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ChocoTimer</title>
+    <style>
+        html {
+            font-family: sans-serif;
+        }
+
+        #div-top-left {
+            border: 1px solid black;
+            padding: 4px;
+            float: left;
+            width: 50%;
+        }
+
+        #div-timer {
+            padding: 4px;
+        }
+
+        #div-sync {
+            padding: 4px;
+            display: inline-block;
+        }
+
+        #sync-input {
+            display: inline-block;
+        }
+
+        #sync-settings {
+            display: inline-block;
+            border: 1px solid black;
+            vertical-align: top;
+            padding: 4px;
+        }
+
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        table th, table td {
+            border: 1px solid black;
+        }
+
+        #div-sync table input {
+            width: 250px;
+        }
+
+    </style>
+    <script src="jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<audio id="audio-clack" preload="auto" src="audio/clack.wav"></audio>
+<audio id="audio-click1" preload="auto" src="audio/click1.wav"></audio>
+<audio id="audio-ping1" preload="auto" src="audio/ping1.wav"></audio>
+<audio id="audio-ping2" preload="auto" src="audio/ping2.wav"></audio>
+<div id="container">
+    <div id="div-top-left">
+        <div id="div-timer">
+            <h1 id="timer" style="font-family: monospace">0.000</h1>
+            <button id="button-power-on" onclick="clickPowerOn()">Power On</button>
+            <button id="button-calibrate" onclick="clickCalibrate()">Calibrate</button>
+            <button id="button-load-next-window" onclick="clickLoadNextWindow()">Load Next Window</button>
+            <button id="button-start-next-window" onclick="clickStartNextWindow()">Start Timer for Next Window</button>
+        </div>
+        <div id="div-sync">
+            <div id="sync-input">
+                <table id="sync-input-table">
+                    <tbody>
+                    <tr>
+                        <th style="text-align:center;" colspan="2">Item Pool</th>
+                    </tr>
+                    <tr>
+                        <th>1</th>
+                        <td>
+                            <input type="text" list="item-options" id="item-pool-1" tabindex="0">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>2</th>
+                        <td>
+                            <input type="text" list="item-options" id="item-pool-2" tabindex="0">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>3</th>
+                        <td>
+                            <input type="text" list="item-options" id="item-pool-3" tabindex="0">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="text-align:center;" colspan="2">Chocobo Names</th>
+                    </tr>
+                    <tr>
+                        <th>2</th>
+                        <th>
+                            <input type="text" list="choco-name-options" id="choco-name-2" tabindex="0">
+                        </th>
+                    </tr>
+                    <tr>
+                        <th>3</th>
+                        <th>
+                            <input type="text" list="choco-name-options" id="choco-name-3" tabindex="0">
+                        </th>
+                    </tr>
+                    <tr>
+                        <th>4</th>
+                        <th>
+                            <input type="text" list="choco-name-options" id="choco-name-4" tabindex="0">
+                        </th>
+                    </tr>
+                    <tr>
+                        <th>5</th>
+                        <th>
+                            <input type="text" list="choco-name-options" id="choco-name-5" tabindex="0">
+                        </th>
+                    </tr>
+                    <tr>
+                        <th>6</th>
+                        <th>
+                            <input type="text" list="choco-name-options" id="choco-name-6" tabindex="0">
+                        </th>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;" colspan="2">
+                            <button id="button-calculate-frame" onclick="clickCalculateFrame()">Calculate Frame</button>
+                            <button id="button-clear-input" onclick="clickClearInput()">Clear Input</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="sync-settings">
+                <h3>Rank</h3>
+                <input type="radio" id="input-rank-c" name="rank" value="C" checked><label for="input-rank-c">C</label>
+                <br>
+                <input type="radio" id="input-rank-b" name="rank" value="B"><label for="input-rank-b">B</label>
+                <br>
+                <input type="radio" id="input-rank-a" name="rank" value="A"><label for="input-rank-a">A</label>
+                <br>
+                <input type="radio" id="input-rank-s" name="rank" value="S"><label for="input-rank-s">S</label>
+                <h3>Items</h3>
+                <div id="div-input-items">
+                    <input type="checkbox" id="input-items-sa" name="items-sa" value="6" checked><label
+                        for="input-items-sa">Sneak
+                    Attack</label>
+                    <br>
+                    <input type="checkbox" id="input-items-ea" name="items-ea" value="5" checked><label
+                        for="input-items-ea">Enemy
+                    Away</label>
+                </div>
+            </div>
+        </div>
+        <div style="border-top: 1px solid black">
+            <table>
+                <tbody>
+                <tr>
+                    <th>Power On Time</th>
+                    <td id="power-on-time"></td>
+                </tr>
+                <tr>
+                    <th>Calibration Race Start Time</th>
+                    <td id="race-start-time"></td>
+                </tr>
+                <tr>
+                    <th>Calibration Race Start Frame</th>
+                    <td id="race-start-frame"></td>
+                </tr>
+                <tr>
+                    <th>Next Window Start Frame</th>
+                    <td id="next-window-start-frame"></td>
+                </tr>
+                <tr>
+                    <th>Next Window Length</th>
+                    <td id="next-window-length"></td>
+                </tr>
+                <tr>
+                    <th>Next Window Target Frame</th>
+                    <td id="next-window-target-frame"></td>
+                </tr>
+                <tr>
+                    <th>Next Window Target Time</th>
+                    <td id="next-window-target-time"></td>
+                </tr>
+                </tbody>
+            </table>
+
+        </div>
+        <div style="border-top: 1px solid black">
+            <label for="input-beep-noise">Beep: </label>
+            <select name="input-beep-noise" id="input-beep-noise">
+                <option value="clack">clack</option>
+                <option value="click1">click1</option>
+                <option value="ping1" selected>ping1</option>
+                <option value="ping2">ping2</option>
+            </select>
+            <br>
+            <label for="input-beeps">Beeps: </label>
+            <input type="number" value="6" id="input-beeps">
+            <br>
+            <label for="input-between-beeps">time between beeps (ms): </label>
+            <input type="number" value="500" id="input-between-beeps">
+            <br>
+            <label for="input-calibration-timer">calibration timer (ms): </label>
+            <input type="number" value="5000" id="input-calibration-timer">
+            <br>
+            <label for="input-calibration-search-window-size">calibration search window size: </label>
+            <input type="number" value="6000" id="input-calibration-search-window-size">
+            <br>
+            <label for="input-next-window-min-time">minimum time before window (ms): </label>
+            <input type="number" value="10000" id="input-next-window-min-time">
+            <br>
+            <label for="input-window-search-max-frames">maximum frames to search for a window:</label>
+            <input type="number" value="60000" id="input-window-search-max-frames">
+            <br>
+            <label for="input-min-window-size">minimum window size: </label>
+            <input type="number" value="4" id="input-min-window-size">
+        </div>
+    </div>
+</div>
+</body>
+<datalist id="item-options"></datalist>
+<datalist id="choco-name-options"></datalist>
+<script src="script.js"></script>
+</html>
