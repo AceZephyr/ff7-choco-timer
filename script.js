@@ -152,11 +152,11 @@ function frameMatches(frame, items, names, rank = 'C') {
 }
 
 function framesBetweenTimes(time1, time2) {
-    return Math.round(((time1 - time2) * 60) / 1000);
+    return Math.round(((time1 - time2) * FPS) / 1000);
 }
 
 function framesToMilliseconds(frame) {
-    return frame * (1000 / 60);
+    return frame * (1000 / FPS);
 }
 
 function offsetToNearestMatchingFrame(frame, items, names, rank) {
@@ -425,6 +425,9 @@ function generateChocoboRaceData(rng = null, rank = 'C', _B747C = 0xffffffff) {
 }
 
 let ivar;
+
+let FPS = 60;
+
 let power_on_time;
 let calibration_race_start_time;
 let calibration_race_start_frame;
@@ -515,7 +518,7 @@ function clickCalculateFrame() {
     for (let i = 0; i < names.length; i++) {
         names[i] = CHOCO_NAMES.indexOf(namesStrs[i]);
     }
-    let frames_first_estimate = framesBetweenTimes(power_on_time, calibration_race_start_time);
+    let frames_first_estimate = framesBetweenTimes(calibration_race_start_time, power_on_time);
     console.log(frames_first_estimate);
     let rank = $("input[type='radio'][name='rank']:checked").val();
     let offset = offsetToNearestMatchingFrame(frames_first_estimate, items, names, rank);
@@ -524,7 +527,7 @@ function clickCalculateFrame() {
         return;
     }
     calibration_race_start_frame = frames_first_estimate + offset;
-    power_on_time += Math.round((1000 / 60) * offset);
+    power_on_time = calibration_race_start_time - Math.round((1000 / FPS) * calibration_race_start_frame);
     redraw();
 }
 
@@ -549,7 +552,7 @@ function isGoodFrame(frame, items, rank) {
 }
 
 function getNextWindow(startFrame, windowSize, maxFrames, items, rank) {
-    for (let frame = startFrame + windowSize; frame <= maxFrames; frame += windowSize) {
+    for (let frame = startFrame + windowSize; frame <= startFrame + maxFrames; frame += windowSize) {
         if (isGoodFrame(frame, items, rank)) {
             let windowStart = frame;
             let windowEnd = frame;
@@ -600,6 +603,8 @@ function clickLoadNextWindow() {
     next_window_length = next_window.length;
     next_window_target_frame = next_window.target;
     next_window_target_time = power_on_time + Math.round(framesToMilliseconds(next_window_target_frame));
+    calibration_race_start_time = next_window_target_time;
+    calibration_race_start_frame = "";
     redraw();
 }
 
@@ -615,6 +620,10 @@ function clickStartNextWindow() {
         return;
     }
     runTimer(next_window_target_time);
+}
+
+function fpsInput() {
+    FPS = parseFloat($("#input-fps").val());
 }
 
 //clear sync input
