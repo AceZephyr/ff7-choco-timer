@@ -483,13 +483,43 @@ function stopTimer() {
     window.clearInterval(ivar);
 }
 
+function clearFrameData(div = "#div-fwi-1") {
+    $(div).html("");
+}
+
+function putFrameData(frame, rank, div = "#div-fwi-1") {
+    let raceData = generateChocoboRaceData(new RNG(BigInt(frame)), rank);
+    let table = $("<table class='table-race-data'>");
+    table.append(`<tr><th colspan='5'><button onclick="$(this).parent().parent().parent().remove()">×</button> ${frame} [${rank}]</th></tr>`);
+    table.append(`<tr><th colspan='5'>Item Pool</th></tr>`);
+    for (let j = 0; j < raceData.items.length; j++) {
+        let item = ITEM_NAMES[raceData.items[j]];
+        table.append(`<tr><td colspan='5'>${item}</td></tr>`);
+    }
+    table.append(`<tr><th colspan='5'>Racers</th></tr>`);
+    for (let j = 0; j < raceData.names.length; j++) {
+        let name = CHOCO_NAMES[raceData.names[j]];
+        table.append(`<tr><td colspan='5'>${name}</td></tr>`);
+    }
+    table.append(`<tr><th colspan='5'>Tiles</th></tr>`);
+    for (let j = 0; j < 3; j++) {
+        let row = $("<tr></tr>");
+        for (let k = 0; k < 5; k++) {
+            let card = raceData.tileCards[j * 5 + k] + 1;
+            row.append(`<td>${card}</td>`)
+        }
+        table.append(row)
+    }
+    $(div).append(table);
+}
+
 function clickPowerOn() {
     let d = new Date();
     power_on_time = d.getTime();
     redraw();
 }
 
-function clickCalibrate() {
+function clickStartCalibration() {
     let d = new Date();
     calibration_race_start_time = d.getTime() + CALIBRATION_TIMER;
     redraw();
@@ -533,9 +563,27 @@ function clickCalculateFrame() {
         window.alert("Could not locate frame.");
         return;
     }
-    calibration_race_start_frame = frames_first_estimate + offset;
+    $("#input-calibration-frame").val(frames_first_estimate + offset);
+}
+
+function clickCalibrate() {
+    if (power_on_time === undefined || power_on_time === null || calibration_race_start_time === undefined || calibration_race_start_time === null) {
+        window.alert("Signal a power on time and prepare to calibrate with a race before putting in data.");
+        return;
+    }
+    calibration_race_start_frame = parseInt($("#input-calibration-frame").val());
     power_on_time = calibration_race_start_time - Math.round((1000 / FPS) * calibration_race_start_frame);
     redraw();
+}
+
+function clickDisplayFrameData() {
+    let frame = parseInt($("#input-calibration-frame").val());
+    let rank = $("input[type='radio'][name='rank']:checked").val();
+    putFrameData(frame, rank, "#div-fwi-2");
+}
+
+function clickResetFrameData() {
+    clearFrameData("#div-fwi-2");
 }
 
 function clearInput() {
@@ -583,6 +631,7 @@ function getNextWindow(startFrame, windowSize, maxFrames, items, rank) {
     return null;
 }
 
+
 function clickLoadNextWindow() {
     if (power_on_time === undefined || power_on_time === null
         || calibration_race_start_time === undefined || calibration_race_start_time === null
@@ -612,31 +661,8 @@ function clickLoadNextWindow() {
     calibration_race_start_frame = "";
     redraw();
 
-    $("#div-fwi").html("");
     for (let i = next_window_start_frame; i <= next_window_last_frame; i++) {
-        let raceData = generateChocoboRaceData(new RNG(BigInt(i)), rank);
-        let table = $("<table class='table-race-data'>");
-        table.append(`<tr><th colspan='5'>${i}</th></tr>`);
-        table.append(`<tr><th colspan='5'>Item Pool</th></tr>`);
-        for (let j = 0; j < raceData.items.length; j++) {
-            let item = ITEM_NAMES[raceData.items[j]];
-            table.append(`<tr><td colspan='5'>${item}</td></tr>`);
-        }
-        table.append(`<tr><th colspan='5'>Racers</th></tr>`);
-        for (let j = 0; j < raceData.names.length; j++) {
-            let name = CHOCO_NAMES[raceData.names[j]];
-            table.append(`<tr><td colspan='5'>${name}</td></tr>`);
-        }
-        table.append(`<tr><th colspan='5'>Tiles</th></tr>`);
-        for (let j = 0; j < 3; j++) {
-            let row = $("<tr></tr>");
-            for (let k = 0; k < 5; k++) {
-                let card = raceData.tileCards[j*5 + k] + 1;
-                row.append(`<td>${card}</td>`)
-            }
-            table.append(row)
-        }
-        $("#div-fwi").append(table);
+        putFrameData(i, rank);
     }
 }
 
