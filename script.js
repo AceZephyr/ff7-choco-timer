@@ -161,7 +161,7 @@ function framesToMilliseconds(frame) {
 
 function offsetToNearestMatchingFrame(frame, items, names, rank) {
 
-    let search_window_size = parseInt($("#input-calibration-search-window-size").val());
+    let search_window_size = CALIBRATION_SEARCH_WINDOW_SIZE;
 
     if (frameMatches(frame, items, names, rank)) {
         return 0;
@@ -426,7 +426,14 @@ function generateChocoboRaceData(rng = null, rank = 'C', _B747C = 0xffffffff) {
 
 let ivar;
 
-let FPS = 60;
+let FPS = parseFloat($("#input-fps").val());
+let BEEPS = parseInt($("#input-beeps").val());
+let TIME_BETWEEN_BEEPS = parseInt($("#input-between-beeps").val());
+let CALIBRATION_TIMER = parseInt($("#input-calibration-timer").val());
+let CALIBRATION_SEARCH_WINDOW_SIZE = parseInt($("#input-calibration-search-window-size").val());
+let MIN_TIME_BEFORE_WINDOW = parseInt($("#input-next-window-min-time").val())
+let WINDOW_SEARCH_MAX_FRAMES = parseInt($("#input-window-search-max-frames").val())
+let MIN_WINDOW_SIZE = parseInt($("#input-min-window-size").val())
 
 let power_on_time;
 let calibration_race_start_time;
@@ -435,6 +442,7 @@ let next_window_start_frame;
 let next_window_length;
 let next_window_target_frame;
 let next_window_target_time;
+let next_window_last_frame;
 
 function redraw() {
     $("#power-on-time").text(power_on_time);
@@ -444,15 +452,15 @@ function redraw() {
     $("#next-window-length").text(next_window_length);
     $("#next-window-target-frame").text(next_window_target_frame);
     $("#next-window-target-time").text(next_window_target_time);
+    $("#next-window-last-frame").text(next_window_last_frame);
 }
 
 function runTimer(start) {
     let d = new Date();
     let audio = AUDIO_MAP[$("#input-beep-noise").val()];
-    let beeps = parseInt($("#input-beeps").val());
-    let ms_between_beeps = parseInt($("#input-between-beeps").val());
+    let ms_between_beeps = TIME_BETWEEN_BEEPS;
     let timer_element = $("#timer").get()[0];
-    let beep_time = Math.min((beeps - 1) * ms_between_beeps, start - d.getTime());
+    let beep_time = Math.min((BEEPS - 1) * ms_between_beeps, start - d.getTime());
     if (ivar !== undefined && ivar !== null) {
         window.clearInterval(ivar);
     }
@@ -483,8 +491,7 @@ function clickPowerOn() {
 
 function clickCalibrate() {
     let d = new Date();
-    let calibration_timer = parseInt($("#input-calibration-timer").val());
-    calibration_race_start_time = d.getTime() + calibration_timer;
+    calibration_race_start_time = d.getTime() + CALIBRATION_TIMER;
     redraw();
     runTimer(calibration_race_start_time);
 }
@@ -584,17 +591,14 @@ function clickLoadNextWindow() {
         return;
     }
     let d = new Date();
-    let search_offset = parseInt($("#input-next-window-min-time").val());
-    let start_frame = framesBetweenTimes(search_offset + d.getTime(), power_on_time);
-    let window_size = parseInt($("#input-min-window-size").val());
-    let max_frames = parseInt($("#input-window-search-max-frames").val());
+    let start_frame = framesBetweenTimes(MIN_TIME_BEFORE_WINDOW + d.getTime(), power_on_time);
     let items = new Set();
     let item_checkboxes = $("#div-input-items>input[type='checkbox']:checked").get();
     for (let i = 0; i < item_checkboxes.length; i++) {
         items.add(BigInt(parseInt(item_checkboxes[i].value)));
     }
     let rank = $("input[type='radio'][name='rank']:checked").val();
-    let next_window = getNextWindow(start_frame, window_size, max_frames, items, rank);
+    let next_window = getNextWindow(start_frame, MIN_WINDOW_SIZE, WINDOW_SEARCH_MAX_FRAMES, items, rank);
     if (next_window === null) {
         window.alert("Could not find window.");
         return;
@@ -603,9 +607,37 @@ function clickLoadNextWindow() {
     next_window_length = next_window.length;
     next_window_target_frame = next_window.target;
     next_window_target_time = power_on_time + Math.round(framesToMilliseconds(next_window_target_frame));
+    next_window_last_frame = next_window.start + next_window.length - 1;
     calibration_race_start_time = next_window_target_time;
     calibration_race_start_frame = "";
     redraw();
+
+    $("#div-fwi").html("");
+    for (let i = next_window_start_frame; i <= next_window_last_frame; i++) {
+        let raceData = generateChocoboRaceData(new RNG(BigInt(i)), rank);
+        let table = $("<table class='table-race-data'>");
+        table.append(`<tr><th colspan='5'>${i}</th></tr>`);
+        table.append(`<tr><th colspan='5'>Item Pool</th></tr>`);
+        for (let j = 0; j < raceData.items.length; j++) {
+            let item = ITEM_NAMES[raceData.items[j]];
+            table.append(`<tr><td colspan='5'>${item}</td></tr>`);
+        }
+        table.append(`<tr><th colspan='5'>Racers</th></tr>`);
+        for (let j = 0; j < raceData.names.length; j++) {
+            let name = CHOCO_NAMES[raceData.names[j]];
+            table.append(`<tr><td colspan='5'>${name}</td></tr>`);
+        }
+        table.append(`<tr><th colspan='5'>Tiles</th></tr>`);
+        for (let j = 0; j < 3; j++) {
+            let row = $("<tr></tr>");
+            for (let k = 0; k < 5; k++) {
+                let card = raceData.tileCards[j*3 + k] + 1;
+                row.append(`<td>${card}</td>`)
+            }
+            table.append(row)
+        }
+        $("#div-fwi").append(table);
+    }
 }
 
 function clickStartNextWindow() {
@@ -615,19 +647,16 @@ function clickStartNextWindow() {
         || next_window_start_frame === undefined || next_window_start_frame === null
         || next_window_length === undefined || next_window_length === null
         || next_window_target_frame === undefined || next_window_target_frame === null
-        || next_window_target_time === undefined || next_window_target_time === null) {
+        || next_window_target_time === undefined || next_window_target_time === null
+        || next_window_last_frame === undefined || next_window_last_frame === null) {
         window.alert("Load a window first!");
         return;
     }
     runTimer(next_window_target_time);
 }
 
-function fpsInput() {
-    FPS = parseFloat($("#input-fps").val());
-}
-
 //clear sync input
-clearInput();
+// clearInput();
 
 for (let i = 0; i < ITEM_NAMES.length; i++) {
     $("#item-options").append($(`<option value="${ITEM_NAMES[i]}">${ITEM_NAMES[i]}</option>`));

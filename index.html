@@ -8,11 +8,11 @@
             font-family: sans-serif;
         }
 
-        #div-top-left {
+        #div-left, #div-right {
             border: 1px solid black;
             padding: 4px;
-            float: left;
-            width: 50%;
+            display: inline-block;
+            vertical-align: top;
         }
 
         #div-timer {
@@ -48,6 +48,11 @@
             width: 250px;
         }
 
+        .table-race-data {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
     </style>
     <script src="jquery-3.6.0.min.js"></script>
 </head>
@@ -57,7 +62,7 @@
 <audio id="audio-ping1" preload="auto" src="audio/ping1.wav"></audio>
 <audio id="audio-ping2" preload="auto" src="audio/ping2.wav"></audio>
 <div id="container">
-    <div id="div-top-left">
+    <div id="div-left">
         <div id="div-timer">
             <h1 id="timer" style="font-family: monospace">0.000</h1>
             <button id="button-power-on" onclick="clickPowerOn()">Power On</button>
@@ -184,6 +189,10 @@
                     <th>Next Window Target Time</th>
                     <td id="next-window-target-time"></td>
                 </tr>
+                <tr>
+                    <th>Next Window Last Frame</th>
+                    <td id="next-window-last-frame"></td>
+                </tr>
                 </tbody>
             </table>
 
@@ -198,29 +207,38 @@
             </select>
             <br>
             <label for="input-fps">FPS: </label>
-            <input type="text" value="60" id="input-fps" oninput="fpsInput()">
+            <input type="text" value="60" id="input-fps" oninput="FPS = parseFloat(this.value)">
             <br>
             <label for="input-beeps">Beeps: </label>
-            <input type="number" value="6" id="input-beeps">
+            <input type="number" value="6" id="input-beeps" oninput="BEEPS = parseInt(this.value)">
             <br>
             <label for="input-between-beeps">time between beeps (ms): </label>
-            <input type="number" value="500" id="input-between-beeps">
+            <input type="number" value="500" id="input-between-beeps"
+                   oninput="TIME_BETWEEN_BEEPS = parseInt(this.value)">
             <br>
             <label for="input-calibration-timer">calibration timer (ms): </label>
-            <input type="number" value="5000" id="input-calibration-timer">
+            <input type="number" value="5000" id="input-calibration-timer"
+                   oninput="CALIBRATION_TIMER = parseInt(this.value)">
             <br>
             <label for="input-calibration-search-window-size">calibration search window size: </label>
-            <input type="number" value="6000" id="input-calibration-search-window-size">
+            <input type="number" value="6000" id="input-calibration-search-window-size"
+                   oninput="CALIBRATION_SEARCH_WINDOW_SIZE = parseInt(this.value)">
             <br>
             <label for="input-next-window-min-time">minimum time before window (ms): </label>
-            <input type="number" value="10000" id="input-next-window-min-time">
+            <input type="number" value="10000" id="input-next-window-min-time"
+                   oninput="MIN_TIME_BEFORE_WINDOW = parseInt(this.value)">
             <br>
             <label for="input-window-search-max-frames">maximum frames to search for a window:</label>
-            <input type="number" value="60000" id="input-window-search-max-frames">
+            <input type="number" value="60000" id="input-window-search-max-frames"
+                   oninput="WINDOW_SEARCH_MAX_FRAMES = parseInt(this.value)">
             <br>
             <label for="input-min-window-size">minimum window size: </label>
-            <input type="number" value="4" id="input-min-window-size">
+            <input type="number" value="4" id="input-min-window-size" oninput="MIN_WINDOW_SIZE = parseInt(this.value)">
         </div>
+    </div>
+    <div id="div-right">
+        <h2>Frame Window Information</h2>
+        <div id="div-fwi"></div>
     </div>
 </div>
 </body>
