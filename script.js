@@ -631,7 +631,7 @@ function clickLoadNextWindow() {
         for (let j = 0; j < 3; j++) {
             let row = $("<tr></tr>");
             for (let k = 0; k < 5; k++) {
-                let card = raceData.tileCards[j*3 + k] + 1;
+                let card = raceData.tileCards[j*5 + k] + 1;
                 row.append(`<td>${card}</td>`)
             }
             table.append(row)
