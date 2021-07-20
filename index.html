@@ -7,7 +7,7 @@
         html {
             font-family: sans-serif;
         }
-        
+
         .center {
             text-align: center;
         }
@@ -65,18 +65,22 @@
     <script src="jquery-3.6.0.min.js"></script>
 </head>
 <body>
-<audio id="audio-clack" preload="auto" src="audio/clack.wav"></audio>
-<audio id="audio-click1" preload="auto" src="audio/click1.wav"></audio>
-<audio id="audio-ping1" preload="auto" src="audio/ping1.wav"></audio>
-<audio id="audio-ping2" preload="auto" src="audio/ping2.wav"></audio>
+<audio id="audio-f-clack" preload="auto" src="audio/FlowTimer/clack.wav"></audio>
+<audio id="audio-f-click1" preload="auto" src="audio/FlowTimer/click1.wav"></audio>
+<audio id="audio-f-ping1" preload="auto" src="audio/FlowTimer/ping1.wav"></audio>
+<audio id="audio-f-ping2" preload="auto" src="audio/FlowTimer/ping2.wav"></audio>
+<audio id="audio-e-beep" preload="auto" src="audio/EonTimer/resources_sounds_beep.wav"></audio>
+<audio id="audio-e-ding" preload="auto" src="audio/EonTimer/resources_sounds_ding.wav"></audio>
+<audio id="audio-e-pop" preload="auto" src="audio/EonTimer/resources_sounds_pop.wav"></audio>
+<audio id="audio-e-tick" preload="auto" src="audio/EonTimer/resources_sounds_tick.wav"></audio>
 <div id="container">
     <div id="div-left">
         <div id="div-timer">
             <h1 id="timer" style="font-family: monospace">0.000</h1>
             <button id="button-power-on" onclick="clickPowerOn()">Power On</button>
             <button id="button-start-calibration" onclick="clickStartCalibration()">Start Calibration</button>
-            <button id="button-load-next-window" onclick="clickLoadNextWindow()">Load Next Window</button>
-            <button id="button-start-next-window" onclick="clickStartNextWindow()">Start Timer for Next Window</button>
+            <button id="button-load-next-window" onclick="clickLoadNextWindow()">Load Next Window + Start Timer</button>
+            <button id="button-cancel-timer" onclick="clickCancelTimer()">Cancel Timer</button>
         </div>
         <div id="div-sync">
             <div id="sync-input">
@@ -155,13 +159,16 @@
                     </tr>
                     <tr>
                         <td colspan="2" class="center">
-                            <button id="button-display-frame-data" onclick="clickDisplayFrameData()">Display Frame Data</button>
-                            <button id="button-clear-frame-data" onclick="clickResetFrameData()">Clear Frame Data</button>
+                            <button id="button-display-frame-data" onclick="clickDisplayFrameData()">Display Frame
+                                Data
+                            </button>
+                            <button id="button-clear-frame-data" onclick="clickResetFrameData()">Clear Frame Data
+                            </button>
                         </td>
                     </tr>
                     </tbody>
                 </table>
-                
+
             </div>
             <div id="sync-settings">
                 <h3>Rank</h3>
@@ -219,19 +226,27 @@
                 </tr>
                 </tbody>
             </table>
-
         </div>
         <div class="border-top">
             <label for="input-beep-noise">Beep: </label>
             <select name="input-beep-noise" id="input-beep-noise">
-                <option value="clack">clack</option>
-                <option value="click1">click1</option>
-                <option value="ping1" selected>ping1</option>
-                <option value="ping2">ping2</option>
+                <option value="f-clack">FlowTimer clack</option>
+                <option value="f-click1">FlowTimer click1</option>
+                <option value="f-ping1" selected>FlowTimer ping1</option>
+                <option value="f-ping2">FlowTimer ping2</option>
+                <option value="e-beep">EonTimer beep</option>
+                <option value="e-ding">EonTimer ding</option>
+                <option value="e-pop">EonTimer pop</option>
+                <option value="e-tick">EonTimer tick</option>
             </select>
+            <button id="input-beep-test" onclick="AUDIO_MAP[$('#input-beep-noise').val()].play()">Beep Test</button>
+            <br>
+            <label for="input-beep-volume">Beep Volume: </label>
+            <input type="range" id="input-beep-volume" min="0" max="1" step="0.05" value="0.2"
+                   oninput="changeVolume(this.value)">
             <br>
             <label for="input-fps">FPS: </label>
-            <input type="text" value="60" id="input-fps" oninput="FPS = parseFloat(this.value)">
+            <input type="text" value="59.84" id="input-fps" oninput="FPS = parseFloat(this.value)">
             <br>
             <label for="input-beeps">Beeps: </label>
             <input type="number" value="6" id="input-beeps" oninput="BEEPS = parseInt(this.value)">
@@ -241,15 +256,15 @@
                    oninput="TIME_BETWEEN_BEEPS = parseInt(this.value)">
             <br>
             <label for="input-calibration-timer">calibration timer (ms): </label>
-            <input type="number" value="5000" id="input-calibration-timer"
+            <input type="number" value="4000" id="input-calibration-timer"
                    oninput="CALIBRATION_TIMER = parseInt(this.value)">
             <br>
-            <label for="input-calibration-search-window-size">calibration search window size: </label>
-            <input type="number" value="6000" id="input-calibration-search-window-size"
-                   oninput="CALIBRATION_SEARCH_WINDOW_SIZE = parseInt(this.value)">
+            <label for="input-frame-calculation-search-window-size">frame calculation search window size: </label>
+            <input type="number" value="600000" id="input-frame-calculation-search-window-size"
+                   oninput="FRAME_CALCULATION_SEARCH_WINDOW_SIZE = parseInt(this.value)">
             <br>
             <label for="input-next-window-min-time">minimum time before window (ms): </label>
-            <input type="number" value="10000" id="input-next-window-min-time"
+            <input type="number" value="4000" id="input-next-window-min-time"
                    oninput="MIN_TIME_BEFORE_WINDOW = parseInt(this.value)">
             <br>
             <label for="input-window-search-max-frames">maximum frames to search for a window:</label>
@@ -258,6 +273,12 @@
             <br>
             <label for="input-min-window-size">minimum window size: </label>
             <input type="number" value="4" id="input-min-window-size" oninput="MIN_WINDOW_SIZE = parseInt(this.value)">
+        </div>
+        <div class="border-top">
+            <label for="input-offset-frames">Offset Frames: </label>
+            <input type="number" value="0" id="input-offset-frames">
+            <button onclick="clickOffsetFrames(1)">Apply Offset</button>
+            <button onclick="clickOffsetFrames(-1)">Invert Offset</button>
         </div>
     </div>
     <div id="div-right">

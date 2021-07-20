@@ -130,10 +130,14 @@ const REWARD_TABLES = {
 };
 
 const AUDIO_MAP = {
-    "clack": $("#audio-clack").get()[0],
-    "click1": $("#audio-click1").get()[0],
-    "ping1": $("#audio-ping1").get()[0],
-    "ping2": $("#audio-ping2").get()[0],
+    "f-clack": $("#audio-f-clack").get()[0],
+    "f-click1": $("#audio-f-click1").get()[0],
+    "f-ping1": $("#audio-f-ping1").get()[0],
+    "f-ping2": $("#audio-f-ping2").get()[0],
+    "e-beep": $("#audio-e-beep").get()[0],
+    "e-ding": $("#audio-e-ding").get()[0],
+    "e-pop": $("#audio-e-pop").get()[0],
+    "e-tick": $("#audio-e-tick").get()[0]
 }
 
 function frameMatches(frame, items, names, rank = 'C') {
@@ -161,7 +165,7 @@ function framesToMilliseconds(frame) {
 
 function offsetToNearestMatchingFrame(frame, items, names, rank) {
 
-    let search_window_size = CALIBRATION_SEARCH_WINDOW_SIZE;
+    let search_window_size = FRAME_CALCULATION_SEARCH_WINDOW_SIZE;
 
     if (frameMatches(frame, items, names, rank)) {
         return 0;
@@ -430,7 +434,7 @@ let FPS = parseFloat($("#input-fps").val());
 let BEEPS = parseInt($("#input-beeps").val());
 let TIME_BETWEEN_BEEPS = parseInt($("#input-between-beeps").val());
 let CALIBRATION_TIMER = parseInt($("#input-calibration-timer").val());
-let CALIBRATION_SEARCH_WINDOW_SIZE = parseInt($("#input-calibration-search-window-size").val());
+let FRAME_CALCULATION_SEARCH_WINDOW_SIZE = parseInt($("#input-calibration-search-window-size").val());
 let MIN_TIME_BEFORE_WINDOW = parseInt($("#input-next-window-min-time").val())
 let WINDOW_SEARCH_MAX_FRAMES = parseInt($("#input-window-search-max-frames").val())
 let MIN_WINDOW_SIZE = parseInt($("#input-min-window-size").val())
@@ -481,16 +485,21 @@ function runTimer(start) {
 
 function stopTimer() {
     window.clearInterval(ivar);
+    $("#timer").get()[0].innerText = "0.000";
 }
 
 function clearFrameData(div = "#div-fwi-1") {
     $(div).html("");
 }
 
-function putFrameData(frame, rank, div = "#div-fwi-1") {
+function putFrameData(frame, rank, div = "#div-fwi-1", closeButton = false) {
     let raceData = generateChocoboRaceData(new RNG(BigInt(frame)), rank);
     let table = $("<table class='table-race-data'>");
-    table.append(`<tr><th colspan='5'><button onclick="$(this).parent().parent().parent().remove()">×</button> ${frame} [${rank}]</th></tr>`);
+    if (closeButton) {
+        table.append(`<tr><th colspan='5'><button onclick="$(this).parent().parent().parent().remove()">×</button> ${frame} [${rank}]</th></tr>`);
+    } else {
+        table.append(`<tr><th colspan='5'>${frame} [${rank}]</th></tr>`);
+    }
     table.append(`<tr><th colspan='5'>Item Pool</th></tr>`);
     for (let j = 0; j < raceData.items.length; j++) {
         let item = ITEM_NAMES[raceData.items[j]];
@@ -527,10 +536,6 @@ function clickStartCalibration() {
 }
 
 function clickCalculateFrame() {
-    if (power_on_time === undefined || power_on_time === null || calibration_race_start_time === undefined || calibration_race_start_time === null) {
-        window.alert("Signal a power on time and prepare to calibrate with a race before putting in data.");
-        return;
-    }
     let itemsStrs = [
         $("#item-pool-1").val(),
         $("#item-pool-2").val(),
@@ -579,7 +584,7 @@ function clickCalibrate() {
 function clickDisplayFrameData() {
     let frame = parseInt($("#input-calibration-frame").val());
     let rank = $("input[type='radio'][name='rank']:checked").val();
-    putFrameData(frame, rank, "#div-fwi-2");
+    putFrameData(frame, rank, "#div-fwi-2", true);
 }
 
 function clickResetFrameData() {
@@ -632,11 +637,21 @@ function getNextWindow(startFrame, windowSize, maxFrames, items, rank) {
 }
 
 
+function itemsInRank(items, rank) {
+    for (let i = 0; i < REWARD_TABLES[rank].length; i++) {
+        if (items.has(REWARD_TABLES[rank][i][0])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 function clickLoadNextWindow() {
     if (power_on_time === undefined || power_on_time === null
         || calibration_race_start_time === undefined || calibration_race_start_time === null
         || calibration_race_start_frame === undefined || calibration_race_start_frame === null) {
-        window.alert("Calibrate first!");
+        window.alert("Power on and calibrate first!");
         return;
     }
     let d = new Date();
@@ -647,6 +662,10 @@ function clickLoadNextWindow() {
         items.add(BigInt(parseInt(item_checkboxes[i].value)));
     }
     let rank = $("input[type='radio'][name='rank']:checked").val();
+    if (!itemsInRank(items, rank)) {
+        window.alert("Not possible to get any of these items in this rank.");
+        return;
+    }
     let next_window = getNextWindow(start_frame, MIN_WINDOW_SIZE, WINDOW_SEARCH_MAX_FRAMES, items, rank);
     if (next_window === null) {
         window.alert("Could not find window.");
@@ -661,28 +680,31 @@ function clickLoadNextWindow() {
     calibration_race_start_frame = "";
     redraw();
 
+    clearFrameData();
     for (let i = next_window_start_frame; i <= next_window_last_frame; i++) {
         putFrameData(i, rank);
-    }
-}
-
-function clickStartNextWindow() {
-    if (power_on_time === undefined || power_on_time === null
-        || calibration_race_start_time === undefined || calibration_race_start_time === null
-        || calibration_race_start_frame === undefined || calibration_race_start_frame === null
-        || next_window_start_frame === undefined || next_window_start_frame === null
-        || next_window_length === undefined || next_window_length === null
-        || next_window_target_frame === undefined || next_window_target_frame === null
-        || next_window_target_time === undefined || next_window_target_time === null
-        || next_window_last_frame === undefined || next_window_last_frame === null) {
-        window.alert("Load a window first!");
-        return;
     }
     runTimer(next_window_target_time);
 }
 
-//clear sync input
-// clearInput();
+function clickCancelTimer() {
+    stopTimer();
+}
+
+function changeVolume(volume) {
+    let audios = $("audio").get();
+    for (let i = 0; i < audios.length; i++) {
+        audios[i].volume = volume;
+    }
+}
+
+function clickOffsetFrames(scale) {
+    if (power_on_time === undefined || power_on_time === null) {
+        window.alert("Must power on first");
+        return;
+    }
+    power_on_time -= scale * framesToMilliseconds(parseInt($("#input-offset-frames").val()));
+}
 
 for (let i = 0; i < ITEM_NAMES.length; i++) {
     $("#item-options").append($(`<option value="${ITEM_NAMES[i]}">${ITEM_NAMES[i]}</option>`));
@@ -691,3 +713,5 @@ for (let i = 0; i < ITEM_NAMES.length; i++) {
 for (let i = 0; i < CHOCO_NAMES.length; i++) {
     $("#choco-name-options").append($(`<option value="${CHOCO_NAMES[i]}">${CHOCO_NAMES[i]}</option>`));
 }
+
+changeVolume($("#input-beep-volume").val());
